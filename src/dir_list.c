@@ -12,7 +12,6 @@ struct DirectoryList
 static char *strdup(const char *c);
 static bool directory_list_grow(DirectoryList *dl);
 
-/* Create a pointer to a new DirectoryList, initialize the struct and return the pointer*/
 DirectoryList *directory_list_create(void)
 {
     DirectoryList *dl;
@@ -39,7 +38,6 @@ DirectoryList *directory_list_create(void)
     return dl;
 }
 
-/* Add a new path to the directory list */
 bool directory_list_add(DirectoryList *dl, const char *path)
 {
     // check if dl exists
@@ -60,7 +58,6 @@ bool directory_list_add(DirectoryList *dl, const char *path)
     return true;
 }
 
-/* get index element from the DirectoryList */
 const char *directory_list_get(const DirectoryList *dl, size_t index)
 {
     if (dl == NULL)
@@ -71,7 +68,6 @@ const char *directory_list_get(const DirectoryList *dl, size_t index)
     return dl->paths[index];
 }
 
-/* returns the size of a DirectoryList */
 size_t directory_list_size(const DirectoryList *dl)
 {
     if (dl == NULL)
@@ -79,7 +75,6 @@ size_t directory_list_size(const DirectoryList *dl)
     return dl->size;
 }
 
-/* returns the capacity of a DirectoryList */
 size_t directory_list_capacity(const DirectoryList *dl)
 {
     if (dl == NULL)
@@ -87,7 +82,6 @@ size_t directory_list_capacity(const DirectoryList *dl)
     return dl->capacity;
 }
 
-/* free the DirectoryList*/
 void directory_list_free(DirectoryList *dl)
 {
     if (dl == NULL)
@@ -98,6 +92,14 @@ void directory_list_free(DirectoryList *dl)
     }
     free(dl->paths);
     free(dl);
+}
+
+void directory_list_print(DirectoryList *dl)
+{
+    for (size_t i = 0; i<dl->size;i++)
+    {
+        printf("[%d] %s\n", (int)i, dl->paths[i]);
+    }
 }
 
 /* implementation of strdup */
