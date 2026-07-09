@@ -1,6 +1,7 @@
 #include "scan.h"
 #include "dir_list.h"
 #include "activate.h"
+#include <unistd.h>
 #include <stdio.h>
 int main(int argc, char **argv)
 {
@@ -15,15 +16,27 @@ int main(int argc, char **argv)
     DirectoryList *dl = directory_list_create();
     if (argc == 1)
     {
+        char *cwd = getcwd(NULL, 0);
+
+        if (cwd == NULL)
+        {
+            perror("getcwd");
+            return false;
+        }
+
+        printf("%s\n", cwd);
+
+        free(cwd);
+
         scan_dir(".", dl);
     }
     else
     {
-        scan_dir(argv[0], dl);
+        scan_dir(argv[1], dl);
     }
     if (directory_list_size(dl) == 0)
     {
-        // print error, no environments found in the current directory
+        printf("No environments found\n");
         return 0;
     }
     if (directory_list_size(dl) == 1)
