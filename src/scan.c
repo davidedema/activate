@@ -6,7 +6,9 @@
 #include <limits.h>
 #include "scan.h"
 
-#define PATH_MAX 5000
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 /* check if the directory is a python environment.
 An heuristic could be:
@@ -46,7 +48,6 @@ bool scan_dir(const char *dir, DirectoryList *dl)
 
         if (S_ISDIR(info.st_mode))
         {
-            // printf("DIR  %s\n", path);
             bool possible = is_python_env(path);
             if (possible)
             {
