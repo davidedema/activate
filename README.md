@@ -16,6 +16,10 @@ A lightweight C command-line tool to discover and activate Python virtual enviro
 - Interactive selection when multiple environments are found
 - Lightweight C implementation with no external dependencies
 
+## Important info
+
+- Current version supprorts only linux/MacOS
+- The project is currently under development so bugs are expected 
 
 # Project structure
 
