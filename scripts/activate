@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+path="${1:-.}"
+
+mapfile -t envs < <(activate-cli "$path")
+
+count=${#envs[@]}
+
+if (( count == 0 )); then
+    echo "No environments found" >&2
+    return 1
+fi
+
+if (( count == 1 )); then
+    source "${envs[0]}"
+    return
+fi
+
+
+echo "Multiple environments found:"
+for i in "${!envs[@]}"; do
+    printf "%d) %s\n" "$((i+1))" "${envs[$i]}"
+done
+
+while true; do
+    read -r -p "Select environment: " choice
+
+    if [[ "$choice" =~ ^[0-9]+$ ]] &&
+       (( choice >= 1 && choice <= count )); then
+        source "${envs[$((choice-1))]}"
+        break
+    fi
+
+    echo "Invalid selection"
+done
