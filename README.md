@@ -87,6 +87,14 @@ Make sure `~/.local/bin` is in your `PATH`:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+Add this 3 lines in the `~/.bashrc` and you are ready to go
+
+```bash
+activate() {
+    source "$HOME/.local/bin/activate-wrapper" "$@"
+}
+```
+
 # Usage
 
 ## Scan current directory
