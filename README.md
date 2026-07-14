@@ -91,7 +91,7 @@ Add this 3 lines in the `~/.bashrc` and you are ready to go
 
 ```bash
 activate() {
-    source "$HOME/.local/bin/activate-wrapper" "$@"
+    source "$HOME/.local/bin/activate" "$@"
 }
 ```
 
