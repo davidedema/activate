@@ -164,7 +164,6 @@ environment/
 
 # Future improvements
 
-* Command line argument parser
 * Better error handling
 * Cache discovered environments
 * Environment names instead of full paths

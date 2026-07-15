@@ -1,10 +1,165 @@
 #!/usr/bin/env bash
 
-path="${1:-.}"
+DEFAULT_DEPTH=5
 
-mapfile -t envs < <(activate-cli "$path")
+path="."
+max_depth="$DEFAULT_DEPTH"
+list_only=false
+selected_env=""
+
+show_help() {
+cat <<EOF
+activate - Find and activate Python virtual environments
+
+USAGE
+    activate [DIRECTORY] [OPTIONS]
+
+DESCRIPTION
+    Recursively searches DIRECTORY for Python virtual environments.
+
+    By default:
+      • If one environment is found, it is activated automatically.
+      • If multiple environments are found, you will be prompted to choose one.
+
+    If DIRECTORY is omitted, the current working directory is used.
+
+OPTIONS
+    --list
+        List all detected environments without activating any.
+
+    --max-depth N
+        Maximum recursion depth.
+        Default: ${DEFAULT_DEPTH}
+        Use -1 for unlimited recursion.
+    
+    --env N
+        Automatically activate environment number N.
+        The index corresponds to the order shown by --list.
+
+    -h, --help
+        Show this help message and exit.
+
+ARGUMENTS
+    DIRECTORY
+        Root directory to scan.
+
+EXAMPLES
+    activate
+        Scan the current directory.
+
+    activate .
+        Scan the current directory explicitly.
+
+    activate ~/projects
+        Scan a specific directory.
+
+    activate --list
+        List all detected environments.
+
+    activate ~/projects --list
+        List all environments under ~/projects.
+
+    activate --max-depth 2
+        Limit the search depth to 2.
+
+    activate ~/projects --max-depth 10
+        Scan up to depth 10.
+
+    activate --max-depth -1
+        Search recursively without a depth limit.
+
+ENVIRONMENT DETECTION
+    A directory is considered a Python virtual environment if it contains:
+
+        <env>/bin/activate
+        <env>/bin/python
+
+EXIT STATUS
+    0   Success.
+    1   No environments found or invalid arguments.
+
+AUTHOR
+    davidedema
+
+EOF
+}
+
+# wrapper for cli
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            return 0
+            ;;
+
+        --list)
+            list_only=true
+            shift
+            ;;
+
+        --max-depth)
+            if [[ -z "$2" ]]; then
+                echo "Missing value for --max-depth" >&2
+                return 1
+            fi
+            max_depth="$2"
+            shift 2
+            ;;
+
+        --env)
+            if [[ -z "$2" ]]; then
+                echo "Missing value for --env" >&2
+                return 1
+            fi
+
+            selected_env="$2"
+            shift 2
+            ;;
+
+        *)
+            path="$1"
+            shift
+            ;;
+    esac
+done
+
+mapfile -t envs < <(activate-cli "$path" "$max_depth")
+
 
 count=${#envs[@]}
+
+if (( count == 0 )); then
+    echo "No environments found" >&2
+    return 1
+fi
+
+if "$list_only"; then
+    printf "Found %d environment(s):\n\n" "$count"
+
+    for i in "${!envs[@]}"; do
+        printf "%2d. %s\n" "$((i+1))" "${envs[$i]}"
+    done
+
+    return 0
+fi
+
+if [[ -n "$selected_env" ]]; then
+
+    if ! [[ "$selected_env" =~ ^[0-9]+$ ]]; then
+        echo "Invalid environment index: $selected_env" >&2
+        return 1
+    fi
+
+    if (( selected_env < 1 || selected_env > count )); then
+        echo "Environment index out of range (1-$count)" >&2
+        return 1
+    fi
+
+    source "${envs[$((selected_env-1))]}"
+    return
+fi
+
 
 if (( count == 0 )); then
     echo "No environments found" >&2
@@ -16,10 +171,10 @@ if (( count == 1 )); then
     return
 fi
 
-
 echo "Multiple environments found:"
+
 for i in "${!envs[@]}"; do
-    printf "%d) %s\n" "$((i+1))" "${envs[$i]}"
+    printf "%d) %s\n" "$((i + 1))" "${envs[$i]}"
 done
 
 while true; do
@@ -27,8 +182,8 @@ while true; do
 
     if [[ "$choice" =~ ^[0-9]+$ ]] &&
        (( choice >= 1 && choice <= count )); then
-        source "${envs[$((choice-1))]}"
-        break
+        source "${envs[$((choice - 1))]}"
+        return
     fi
 
     echo "Invalid selection"

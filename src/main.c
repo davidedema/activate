@@ -1,9 +1,12 @@
 #include "scan.h"
 #include "dir_list.h"
 #include "activate.h"
-#include <unistd.h>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
+#define DEFAULT_MAX_DEPTH 5
 
 int main(int argc, char **argv)
 {
@@ -14,35 +17,42 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    char *root = NULL;
+    char *cwd = NULL;
+    const char *root;
+    int max_depth = DEFAULT_MAX_DEPTH;
 
-    if (argc == 1)
+    if (argc >= 2)
     {
-        root = getcwd(NULL, 0);
+        root = argv[1];
+    }
+    else
+    {
+        cwd = getcwd(NULL, 0);
 
-        if (root == NULL)
+        if (cwd == NULL)
         {
             perror("getcwd");
             directory_list_free(dl);
             return 1;
         }
+
+        root = cwd;
     }
-    else
+
+    if (argc >= 3)
     {
-        root = argv[1];
+        max_depth = atoi(argv[2]);
+
+        if (max_depth < -1)
+        {
+            max_depth = DEFAULT_MAX_DEPTH;
+        }
     }
 
-    scan_dir(root, dl);
+    scan_dir(root, dl, max_depth);
 
-    if (argc == 1)
-    {
-        free(root);
-    }
+    free(cwd);
 
-    /*
-     * Output only activation paths.
-     * The shell wrapper handles the interaction.
-     */
     for (size_t i = 0; i < directory_list_size(dl); i++)
     {
         const char *env = directory_list_get(dl, i);
@@ -51,7 +61,7 @@ int main(int argc, char **argv)
 
         if (activate_path != NULL)
         {
-            printf("%s\n", activate_path);
+            puts(activate_path);
             free(activate_path);
         }
     }

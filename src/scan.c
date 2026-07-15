@@ -1,24 +1,48 @@
+#include "scan.h"
+
 #include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <limits.h>
-#include "scan.h"
+#include <sys/stat.h>
+#include <unistd.h>
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
 #endif
 
-/* check if the directory is a python environment.
-An heuristic could be:
-    - the folder contains a bin/ folder with inside a file called activate and a file called python
-*/
-bool is_python_env(const char *path);
-bool contains_env_files(const char *path);
+/* Private helpers */
+static bool scan_dir_recursive(const char *dir,
+                               DirectoryList *dl,
+                               int depth,
+                               int max_depth);
 
-bool scan_dir(const char *dir, DirectoryList *dl)
+static bool is_python_env(const char *path);
+static bool contains_env_files(const char *path);
+
+/* Public API */
+bool scan_dir(const char *dir, DirectoryList *dl, int max_depth)
 {
+    if (dir == NULL || dl == NULL)
+    {
+        return false;
+    }
+
+    return scan_dir_recursive(dir, dl, 0, max_depth);
+}
+
+/* Recursive implementation */
+static bool scan_dir_recursive(const char *dir,
+                               DirectoryList *dl,
+                               int depth,
+                               int max_depth)
+{
+    if (max_depth >= 0 && depth > max_depth)
+    {
+        return true;
+    }
+
     DIR *root = opendir(dir);
 
     if (root == NULL)
@@ -32,7 +56,6 @@ bool scan_dir(const char *dir, DirectoryList *dl)
 
     while ((entry = readdir(root)) != NULL)
     {
-        // skip "." and ".."
         if (strcmp(entry->d_name, ".") == 0 ||
             strcmp(entry->d_name, "..") == 0)
         {
@@ -46,25 +69,26 @@ bool scan_dir(const char *dir, DirectoryList *dl)
             continue;
         }
 
-        if (S_ISDIR(info.st_mode))
+        if (!S_ISDIR(info.st_mode))
         {
-            bool possible = is_python_env(path);
-            if (possible)
-            {
-                if (contains_env_files(path) == true)
-                {
-                    directory_list_add(dl, path);
-                }
-            }
-            scan_dir(path, dl);
+            continue;
         }
+
+        if (is_python_env(path) && contains_env_files(path))
+        {
+            directory_list_add(dl, path);
+        }
+
+        scan_dir_recursive(path, dl, depth + 1, max_depth);
     }
 
     closedir(root);
+
     return true;
 }
 
-bool is_python_env(const char *path)
+/* Check if <path>/bin exists */
+static bool is_python_env(const char *path)
 {
     char bin_path[PATH_MAX];
     struct stat info;
@@ -76,42 +100,35 @@ bool is_python_env(const char *path)
         return false;
     }
 
-    if (S_ISDIR(info.st_mode))
-    {
-        return true;
-    }
-
-    return false;
+    return S_ISDIR(info.st_mode);
 }
 
-bool contains_env_files(const char *path)
+/* Check if bin/activate and bin/python exist */
+static bool contains_env_files(const char *path)
 {
-    char python_path[PATH_MAX];
     char activate_path[PATH_MAX];
-    struct stat info_a;
-    struct stat info_p;
-    char bin_path[PATH_MAX];
+    char python_path[PATH_MAX];
+    struct stat info;
 
-    snprintf(bin_path, sizeof(bin_path), "%s/bin", path);
+    snprintf(activate_path,
+             sizeof(activate_path),
+             "%s/bin/activate",
+             path);
 
-    snprintf(python_path, sizeof(python_path), "%s/python", bin_path);
-    snprintf(activate_path, sizeof(activate_path), "%s/activate", bin_path);
+    if (stat(activate_path, &info) == -1 || !S_ISREG(info.st_mode))
+    {
+        return false;
+    }
 
-    if (stat(activate_path, &info_a) == -1)
+    snprintf(python_path,
+             sizeof(python_path),
+             "%s/bin/python",
+             path);
+
+    if (stat(python_path, &info) == -1 || !S_ISREG(info.st_mode))
     {
         return false;
     }
-    if (stat(python_path, &info_p) == -1)
-    {
-        return false;
-    }
-    if (!S_ISREG(info_a.st_mode))
-    {
-        return false;
-    }
-    if (!S_ISREG(info_p.st_mode))
-    {
-        return false;
-    }
+
     return true;
 }
