@@ -16,8 +16,6 @@ _activate()
             ;;
 
         --env)
-            # Suggest a few numbers.
-            # Later you could dynamically call activate --list.
             COMPREPLY=( $(compgen -W "1 2 3 4 5 6 7 8 9" -- "$cur") )
             return
             ;;
