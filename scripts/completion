@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+
+_activate()
+{
+    local cur prev
+
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    case "$prev" in
+        --max-depth)
+            COMPREPLY=( $(compgen -W "1 2 3 4 5 -1" -- "$cur") )
+            return
+            ;;
+
+        --env)
+            # Suggest a few numbers.
+            # Later you could dynamically call activate --list.
+            COMPREPLY=( $(compgen -W "1 2 3 4 5 6 7 8 9" -- "$cur") )
+            return
+            ;;
+    esac
+
+    if [[ "$cur" == -* ]]; then
+        COMPREPLY=( $(compgen -W \
+            "--help -h --list --max-depth --env" \
+            -- "$cur") )
+        return
+    fi
+
+    # Complete directories
+    COMPREPLY=( $(compgen -d -- "$cur") )
+}
+
+complete -F _activate activate
